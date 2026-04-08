@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Kəşfiyyatçısı - 12 Həftəlik Kurs</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --warn: #f59e0b;
+            --locked: #cbd5e1;
+            --radius: 14px;
+            --shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+            --focus: #eff6ff;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        #app {
+            max-width: 840px;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .fade-in {
+            animation: fadeIn 0.35s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .row { display: flex; gap: 10px; align-items: center; }
+        .space { justify-content: space-between; }
+        .stack { display: grid; gap: 10px; }
+        .muted { color: var(--muted); }
+        .small { font-size: 13px; }
+        .title { margin: 0 0 6px; font-size: 25px; }
+        .subtitle { margin: 0; color: var(--muted); }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .btn.secondary { background: #475569; }
+        .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+        .btn.success { background: #059669; }
+        .btn.warn { background: #b45309; }
+        .btn:disabled { background: var(--locked); cursor: not-allowed; }
+        .btn.inline { width: auto; }
+
+        .progress {
+            width: 100%;
+            height: 12px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        .progress > div {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #059669, #34d399);
+            transition: width 0.4s ease;
+        }
+
+        .weeks {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 10px;
+        }
+        .week-card {
+            border: 1px solid var(--border);
+            border-left: 6px solid var(--primary);
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            cursor: pointer;
+        }
+        .week-card.locked {
+            border-left-color: var(--locked);
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .task {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            cursor: pointer;
+        }
+        .task.mini { background: var(--focus); }
+        .task.done { background: #ecfdf5; border-color: var(--success); }
+        .task .check {
+            width: 22px; height: 22px; border-radius: 6px;
+            border: 2px solid var(--locked);
+            display: grid; place-items: center;
+            font-weight: bold;
+        }
+        .task.done .check { background: var(--success); color: #fff; border-color: var(--success); }
+        .task.done .text { text-decoration: line-through; color: #047857; }
+
+        textarea, input[type="text"], select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        textarea { min-height: 120px; resize: vertical; }
+
+        .badge {
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .badge.warn { background: #fef3c7; color: #b45309; }
+        .save-indicator { color: #059669; font-size: 12px; min-height: 16px; }
+        .notice {
+            border-left: 4px solid var(--primary);
+            background: var(--focus);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 13px;
+            color: #1e3a8a;
+        }
+        .pill {
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 520px) {
+            .title { font-size: 22px; }
+            .row.wrap { flex-wrap: wrap; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+    const DB_KEY = "itExplorer_v1";
+    const DEFAULT_MIN_REFLECTION = 50;
+    let autosaveTimer = null;
+    let sessionTimer = null;
+
+    const AVATARS = ["🚀", "🧠", "💡", "🛠️"];
+    const AGE_OPTIONS = [8, 9, 10, 11, 12];
+
+    const GEMINI_PROMPTS = {
+        1: "Mənə Scratch-də hərəkət bloklarını izah et. 12 yaşlı uşağa uyğun, sadə dillə.",
+        2: "Dövr (repeat) və şərt (if) nədir? Scratch nümunəsi ilə izah et.",
+        3: "Dəyişən nədir? Oyun xalı və bank hesabı kimi misallarla izah et.",
+        4: "Scratch oyunum üçün qələbə şərti necə yaza bilərəm? Sadə addımlarla izah et.",
+        5: "Fayl və qovluq fərqini 12 yaşlı uşağa sadə dillə izah et.",
+        6: "Fişinq nədir? Təhlükəli saytları necə tanıya bilərəm?",
+        7: "Süni intellekt necə işləyir? Maşın öyrənməsini sadə dillə izah et.",
+        8: "Yaxşı prompt necə yazılır? Task, context, format nümunəsi ver.",
+        9: "Layihə planlamağa kömək et: məqsəd, addımlar, vaxt cədvəli.",
+        10: "Layihəmdə AI-dan düzgün kömək almaq üçün hansı sualları verim?",
+        11: "Layihəmi test etmək üçün sadə yoxlama siyahısı hazırla.",
+        12: "10 dəqiqəlik təqdimat üçün çıxış mətni qurmağa kömək et.",
+        0: "CPU, RAM və storage nədir? 8-12 yaşlı uşaq üçün çox sadə izah et."
+    };
+
+    const PROJECT_OPTIONS = [
+        {
+            id: "scratch_game",
+            title: "Scratch Oyunu",
+            desc: "Hərəkət + xal + qələbə şərti olan mini oyun."
+        },
+        {
+            id: "family_budget",
+            title: "Ailə Büdcəsi",
+            desc: "Google Sheets cədvəli və sadə AI izahları."
+        },
+        {
+            id: "my_computer",
+            title: "Mənim Kompüterim",
+            desc: "CPU, RAM, Storage barədə qısa təqdimat."
+        },
+        {
+            id: "safety_guide",
+            title: "Təhlükəsizlik Bələdçisi",
+            desc: "Dostlar üçün internet təhlükəsizliyi qaydaları."
+        }
+    ];
+
+    const COURSE = {
+        0: {
+            title: "Həftə 0: Kompüterin İçində Nə Var?",
+            goal: "Kompüterin necə işlədiyini sadə dillə anlamaq.",
+            hours: "2-3 saat",
+            tasks: [
+                { id: "0_1", text: "Video izlə: How Computer Works (Mindshift Academy)." },
+                { id: "0_2", text: "CPU (Mərkəzi Prosessor), RAM (Əməliyyat Yaddaşı), Storage (Daimi Yaddaş) anlayışlarını oxu." },
+                { id: "0_3", text: "Kağızda kompüterin iş prinsipinin sadə sxemini çək." }
+            ],
+            links: [
+                { label: "Volaura Academy", url: "https://volaura.app" }
+            ],
+            reflectionPrompt: "Səncə kompüter insan kimi düşünür?"
+        },
+        1: {
+            title: "Həftə 1: İlk Addımlar (Scratch)",
+            goal: "Addım-addım komanda ilə ilk animasiyanı qurmaq.",
+            hours: "3-4 saat",
+            tasks: [
+                { id: "1_1", text: "Scratch hesabı yarat (ata köməyi ilə)." },
+                { id: "1_2", text: "Hello World: pişik 'Salam!' desin." },
+                { id: "1_3", text: "Pişiyi səhnədə hərəkət etdir." }
+            ],
+            links: [{ label: "Volaura Studio", url: "https://volaura.app" }],
+            reflectionPrompt: "Kodda sıra niyə vacibdir?"
+        },
+        2: {
+            title: "Həftə 2: Dövrlər və Şərtlər",
+            goal: "repeat və if bloklarını oyunda işlətmək.",
+            hours: "3-4 saat",
+            tasks: [
+                { id: "2_1", text: "Repeat ilə hərəkət dövrü qur." },
+                { id: "2_2", text: "If ilə klikdə rəng dəyişdir." },
+                { id: "2_3", text: "Mini 'Təbrik Kartı' layihəsi hazırla." }
+            ],
+            links: [{ label: "Volaura Dərsləri", url: "https://volaura.app" }],
+            reflectionPrompt: "Dövr nə vaxt dayanır?"
+        },
+        3: {
+            title: "Həftə 3: Dəyişənlər",
+            goal: "xal və vaxt dəyişənlərini qurmaq.",
+            hours: "3-4 saat",
+            tasks: [
+                { id: "3_1", text: "xal adlı dəyişən yarat." },
+                { id: "3_2", text: "Klikdə xal +1 et." },
+                { id: "3_3", text: "vaxt taymeri əlavə et." }
+            ],
+            links: [{ label: "Volaura Studio", url: "https://volaura.app" }],
+            reflectionPrompt: "Dəyişənin adı niyə vacibdir?"
+        },
+        4: {
+            title: "Həftə 4: Layihə Həftəsi - Mini Oyun",
+            goal: "Öyrəndiklərini bir mini oyunda toplamaq.",
+            hours: "4-5 saat",
+            tasks: [
+                { id: "4_1", text: "Ox düymələri ilə personaj hərəkəti et." },
+                { id: "4_2", text: "Əşya toplama və xal sistemi qur." },
+                { id: "4_3", text: "Qələbə şərti əlavə et (xal > 10)." }
+            ],
+            links: [{ label: "Volaura Studio", url: "https://volaura.app" }],
+            reflectionPrompt: "Oyunda ən çətin hissə nə oldu?"
+        },
+        5: {
+            title: "Həftə 5: Kompüter Əsasları (Praktika)",
+            goal: "Fayl sistemi və gündəlik PC bacarıqları.",
+            hours: "3 saat",
+            tasks: [
+                { id: "5_1", text: "IT_Kurs qovluğu və alt qovluqlar yarat." },
+                { id: "5_2", text: "Word/Docs sənədi yaz və saxla." },
+                { id: "5_3", text: "Ctrl+C, Ctrl+V, Ctrl+S qısa yollarını et." }
+            ],
+            links: [],
+            reflectionPrompt: "Fayl ilə qovluğun fərqini necə izah edərsən?"
+        },
+        6: {
+            title: "Həftə 6: İnternet və Təhlükəsizlik",
+            goal: "Onlayn təhlükəsiz davranış qaydaları.",
+            hours: "3 saat",
+            tasks: [
+                { id: "6_1", text: "URL adresini yoxla: doğru domeni tanı." },
+                { id: "6_2", text: "Güclü parol nümunəsi hazırla." },
+                { id: "6_3", text: "Paylaşılmayan şəxsi məlumatları siyahıla." }
+            ],
+            links: [{ label: "Volaura Təhlükəsizlik", url: "https://volaura.app" }],
+            reflectionPrompt: "İnternetdə özünü necə qoruyursan?"
+        },
+        7: {
+            title: "Həftə 7: Süni İntellektlə Tanışlıq",
+            goal: "AI alətini düzgün istifadə etməyi öyrənmək.",
+            hours: "2-3 saat",
+            tasks: [
+                { id: "7_1", text: "Gemini-yə salamlaşma sualı ver." },
+                { id: "7_2", text: "3 fərqli mövzuda sual soruş." },
+                { id: "7_3", text: "AI cavabında fakt yoxlaması et." }
+            ],
+            links: [{ label: "Volaura AI", url: "https://volaura.app" }],
+            reflectionPrompt: "AI insan kimidir, yoxsa alət?"
+        },
+        8: {
+            title: "Həftə 8: Prompt Mühəndisliyi",
+            goal: "Task + Context + Format ilə yaxşı sual yazmaq.",
+            hours: "3 saat",
+            tasks: [
+                { id: "8_1", text: "Pis və yaxşı prompt fərqini müqayisə et." },
+                { id: "8_2", text: "5 yaxşı prompt yaz və sınaqdan keçir." },
+                { id: "8_3", text: "AI cavabını dəqiqlik üçün yoxla." }
+            ],
+            links: [{ label: "Volaura AI", url: "https://volaura.app" }],
+            reflectionPrompt: "Yaxşı sual yazanda cavab niyə yaxşı olur?"
+        },
+        9: {
+            title: "Həftə 9: Böyük Layihə - Plan",
+            goal: "Layihə seçib sadə plan qurmaq.",
+            hours: "4 saat",
+            tasks: [
+                { id: "9_1", text: "4 variantdan bir layihə seç." },
+                { id: "9_2", text: "İcra addımlarını yaz." },
+                { id: "9_3", text: "Ən az 1 screenshot/foto saxla." }
+            ],
+            links: [],
+            reflectionPrompt: "Bu gün layihədə nəyi irəli apardın?"
+        },
+        10: {
+            title: "Həftə 10: Böyük Layihə - İcra",
+            goal: "Layihəni işlək vəziyyətə gətirmək.",
+            hours: "4-5 saat",
+            tasks: [
+                { id: "10_1", text: "Layihənin əsas hissəsini tamamla." },
+                { id: "10_2", text: "AI-dan kömək al, amma özün qur." },
+                { id: "10_3", text: "2-ci screenshot/foto əlavə et." }
+            ],
+            links: [],
+            reflectionPrompt: "Səhvi necə tapdın və düzəltdin?"
+        },
+        11: {
+            title: "Həftə 11: Test və Düzəliş",
+            goal: "Layihəni test edib 1-2 problemi aradan qaldırmaq.",
+            hours: "3 saat",
+            tasks: [
+                { id: "11_1", text: "Layihəni ataya/dosta göstər." },
+                { id: "11_2", text: "Rəy topla və 1-2 düzəliş et." },
+                { id: "11_3", text: "Təqdimat üçün qısa plan yaz." }
+            ],
+            links: [],
+            reflectionPrompt: "İlk versiya ilə son versiya fərqi nədir?"
+        },
+        12: {
+            title: "Həftə 12: Təqdimat və Nəticə",
+            goal: "Layihəni göstərmək və nə öyrəndiyini danışmaq.",
+            hours: "2 saat",
+            tasks: [
+                { id: "12_1", text: "10 dəqiqəlik təqdimata hazırlaş." },
+                { id: "12_2", text: "Layihəni ataya təqdim et." },
+                { id: "12_3", text: "Yekun refleksiya yaz: 3 ay əvvəl vs indi." }
+            ],
+            links: [],
+            reflectionPrompt: "Bu kursda özündə ən böyük dəyişiklik nə oldu?"
+        }
+    };
+
+    function getTodayIsoDate() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    function getInitialState() {
+        return {
+            version: "1.0",
+            student: {
+                name: "",
+                avatar: "🚀",
+                age: 10,
+                startDate: getTodayIsoDate(),
+                lastVisit: new Date().toISOString()
+            },
+            progress: {
+                completedTasks: [],
+                weekProgress: {},
+                currentWeek: 0,
+                unlockedWeeks: [0]
+            },
+            reflections: {},
+            fatherCheckins: {},
+            project: {
+                selectedTemplate: "",
+                notes: ""
+            },
+            settings: {
+                fontSize: "normal",
+                highContrast: false,
+                autoSave: true
+            }
+        };
+    }
+
+    function safeParse(jsonText) {
+        try { return JSON.parse(jsonText); } catch (e) { return null; }
+    }
+
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function mergeState(base, incoming) {
+        if (!incoming || typeof incoming !== "object") return base;
+        return {
+            ...base,
+            ...incoming,
+            student: { ...base.student, ...(incoming.student || {}) },
+            progress: { ...base.progress, ...(incoming.progress || {}) },
+            reflections: { ...base.reflections, ...(incoming.reflections || {}) },
+            fatherCheckins: { ...base.fatherCheckins, ...(incoming.fatherCheckins || {}) },
+            project: { ...base.project, ...(incoming.project || {}) },
+            settings: { ...base.settings, ...(incoming.settings || {}) }
+        };
+    }
+
+    function getReflectionMin() {
+        return state.student.age <= 10 ? 30 : DEFAULT_MIN_REFLECTION;
+    }
+
+    function getLearnerLevel() {
+        if (state.student.age <= 9) return "Junior Explorer";
+        if (state.student.age <= 11) return "Explorer";
+        return "Pro Explorer";
+    }
+
+    function getUiProfile() {
+        if (state.student.age <= 9) {
+            return {
+                minutes: 15,
+                tips: "Kiçik addım + çox təkrar = güclü nəticə.",
+                focus: "#fff7ed"
+            };
+        }
+        if (state.student.age <= 11) {
+            return {
+                minutes: 20,
+                tips: "Tapşırığı hissələrə böl, sonra bir-bir bitir.",
+                focus: "#eff6ff"
+            };
+        }
+        return {
+            minutes: 25,
+            tips: "Planla, sınaq et, düzəlt — bu peşəkar yanaşmadır.",
+            focus: "#eef2ff"
+        };
+    }
+
+    function getDailyQuest() {
+        const currentWeek = state.progress.currentWeek;
+        const week = COURSE[currentWeek];
+        if (!week) return "Bu gün 10 dəqiqə öyrən və 1 fikir yaz.";
+        const firstOpenTask = week.tasks.find((t) => !state.progress.completedTasks.includes(t.id));
+        if (firstOpenTask) return "Missiya: " + firstOpenTask.text;
+        return "Missiya: Reflection bölməsinə 2-3 cümlə yaz və saxla.";
+    }
+
+    function getBadges() {
+        const badges = [];
+        const completedWeeks = Object.keys(COURSE).filter((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70).length;
+        const aiWeek = (state.progress.weekProgress[7] || 0) >= 70 || (state.progress.weekProgress[8] || 0) >= 70;
+        const projectWeek = (state.progress.weekProgress[9] || 0) >= 70 || (state.progress.weekProgress[10] || 0) >= 70;
+        if (completedWeeks >= 1) badges.push("🌱 İlk Addım");
+        if (completedWeeks >= 4) badges.push("🧩 Scratch Ustası");
+        if (aiWeek) badges.push("🤖 AI Kəşfiyyatçısı");
+        if (projectWeek) badges.push("🏗️ Layihə Qurucusu");
+        if (completedWeeks >= 10) badges.push("🚀 Davamlı Öyrənən");
+        if (state.project.selectedTemplate) badges.push("🧪 Layihə Seçimi Edildi");
+        return badges;
+    }
+
+    function getSelectedProjectTitle() {
+        const selected = PROJECT_OPTIONS.find((p) => p.id === state.project.selectedTemplate);
+        return selected ? selected.title : "Seçilməyib";
+    }
+
+    function getWeekSummary(weekId) {
+        const week = COURSE[weekId];
+        if (!week) return null;
+        const doneTasks = week.tasks.filter((t) => state.progress.completedTasks.includes(t.id)).length;
+        const totalTasks = week.tasks.length;
+        const reflectionLen = (state.reflections[weekId] || "").trim().length;
+        const checks = state.fatherCheckins["week" + weekId] || {};
+        const checksDone = Object.values(checks).filter(Boolean).length;
+        const progress = state.progress.weekProgress[weekId] || 0;
+        let recommendation = "Möhtəşəm ritm! Bu həftə eyni qaydada davam edin.";
+        if (progress < 40) recommendation = "Yükü azaldın: bu həftə yalnız 1 missiya + qısa reflection edin.";
+        else if (progress < 70) recommendation = "Məqsəd 70%-dir: bir missiya və reflection əlavə edin.";
+        return { doneTasks, totalTasks, reflectionLen, checksDone, progress, recommendation };
+    }
+
+    function getSessionState() {
+        const total = getUiProfile().minutes * 60;
+        if (!state.settings.session || typeof state.settings.session !== "object") {
+            state.settings.session = { running: false, left: total, lastStart: null };
+        }
+        if (typeof state.settings.session.left !== "number" || state.settings.session.left <= 0) {
+            state.settings.session.left = total;
+        }
+        return state.settings.session;
+    }
+
+    function formatSeconds(sec) {
+        const m = Math.floor(sec / 60).toString().padStart(2, "0");
+        const s = Math.floor(sec % 60).toString().padStart(2, "0");
+        return m + ":" + s;
+    }
+
+    function startFocusSession() {
+        const session = getSessionState();
+        if (session.running) return;
+        session.running = true;
+        session.lastStart = Date.now();
+        clearInterval(sessionTimer);
+        sessionTimer = setInterval(() => {
+            const s = getSessionState();
+            if (!s.running) return;
+            s.left = Math.max(0, s.left - 1);
+            const timerEl = document.getElementById("sessionTimerText");
+            if (timerEl) timerEl.textContent = formatSeconds(s.left);
+            if (s.left === 0) {
+                s.running = false;
+                clearInterval(sessionTimer);
+                setSaveIndicator("Əla! Fokus sessiyası bitdi. 3 dəq fasilə et.");
+                alert("Sessiya tamamlandı 🎉\nİndi 3 dəqiqə fasilə et, sonra davam et.");
+            }
+        }, 1000);
+        autosave();
+        render();
+    }
+
+    function stopFocusSession() {
+        const session = getSessionState();
+        session.running = false;
+        clearInterval(sessionTimer);
+        autosave();
+        render();
+    }
+
+    function resetFocusSession() {
+        const total = getUiProfile().minutes * 60;
+        const session = getSessionState();
+        session.running = false;
+        session.left = total;
+        clearInterval(sessionTimer);
+        autosave();
+        render();
+    }
+
+    let state = mergeState(
+        getInitialState(),
+        safeParse(localStorage.getItem(DB_KEY))
+    );
+
+    const app = document.getElementById("app");
+    const router = { view: "dashboard", weekId: 0 };
+
+    function autosave() {
+        if (!state.settings.autoSave) return;
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+            localStorage.setItem(DB_KEY, JSON.stringify(state));
+            setSaveIndicator("Avtomatik saxlanıldı.");
+        }, 2000);
+    }
+
+    function persistNow(message = "Saxlanıldı.") {
+        localStorage.setItem(DB_KEY, JSON.stringify(state));
+        setSaveIndicator(message);
+    }
+
+    function setSaveIndicator(message) {
+        const el = document.getElementById("saveIndicator");
+        if (el) {
+            el.textContent = message;
+            setTimeout(() => {
+                if (el.textContent === message) el.textContent = "";
+            }, 1800);
+        }
+    }
+
+    function weekTasks(weekId) {
+        return COURSE[weekId]?.tasks || [];
+    }
+
+    function calculateWeekProgress(weekId) {
+        const tasks = weekTasks(weekId);
+        if (!tasks.length) return 0;
+        const doneCount = tasks.filter((t) => state.progress.completedTasks.includes(t.id)).length;
+        const reflection = (state.reflections[weekId] || "").trim();
+        const reflectionDone = reflection.length >= getReflectionMin() ? 1 : 0;
+        const total = tasks.length + 1;
+        return Math.round(((doneCount + reflectionDone) / total) * 100);
+    }
+
+    function refreshAllWeekProgress() {
+        Object.keys(COURSE).forEach((wk) => {
+            const w = Number(wk);
+            state.progress.weekProgress[w] = calculateWeekProgress(w);
+        });
+    }
+
+    function canAccessWeek(weekId) {
+        if (weekId === 0) return true;
+        if (state.progress.unlockedWeeks.includes(weekId)) return true;
+        const prev = weekId - 1;
+        return (state.progress.weekProgress[prev] || 0) >= 70;
+    }
+
+    function unlockByRule() {
+        Object.keys(COURSE).forEach((wk) => {
+            const weekId = Number(wk);
+            if ((state.progress.weekProgress[weekId] || 0) >= 70) {
+                const next = weekId + 1;
+                if (COURSE[next] && !state.progress.unlockedWeeks.includes(next)) {
+                    state.progress.unlockedWeeks.push(next);
+                }
+            }
+        });
+        state.progress.unlockedWeeks = Array.from(new Set(state.progress.unlockedWeeks)).sort((a, b) => a - b);
+        const open = state.progress.unlockedWeeks[state.progress.unlockedWeeks.length - 1] || 0;
+        state.progress.currentWeek = Math.min(open, 12);
+    }
+
+    function navigate(view, weekId = 0) {
+        router.view = view;
+        router.weekId = weekId;
+        render();
+    }
+
+    function onboardingSubmit() {
+        const name = (document.getElementById("nameInput").value || "").trim();
+        const avatar = document.getElementById("avatarInput").value;
+        const age = Number(document.getElementById("ageInput").value || 10);
+        if (!name || name.length < 2) return alert("Ad ən az 2 simvol olmalıdır.");
+        state.student.name = name;
+        state.student.avatar = avatar || "🚀";
+        state.student.age = AGE_OPTIONS.includes(age) ? age : 10;
+        state.student.lastVisit = new Date().toISOString();
+        persistNow("Profil yaradıldı.");
+        navigate("dashboard");
+    }
+
+    function toggleTask(taskId, weekId) {
+        if (!canAccessWeek(weekId)) return;
+        const idx = state.progress.completedTasks.indexOf(taskId);
+        if (idx >= 0) state.progress.completedTasks.splice(idx, 1);
+        else state.progress.completedTasks.push(taskId);
+        refreshAllWeekProgress();
+        unlockByRule();
+        const isNowDone = state.progress.completedTasks.includes(taskId);
+        autosave();
+        if (isNowDone) setSaveIndicator("Mükəmməl! Bir missiya tamamlandı ✅");
+        renderWeek(weekId);
+    }
+
+    function saveReflection(weekId, value) {
+        state.reflections[weekId] = value;
+        refreshAllWeekProgress();
+        unlockByRule();
+        autosave();
+        const pct = state.progress.weekProgress[weekId] || 0;
+        const p = document.getElementById("weekProgressFill");
+        const t = document.getElementById("weekProgressText");
+        const c = document.getElementById("reflectionCounter");
+        if (p) p.style.width = pct + "%";
+        if (t) t.textContent = pct + "% tamamlandı";
+        if (c) c.textContent = (value || "").trim().length + " / " + getReflectionMin() + "+";
+    }
+
+    function openGeminiPrompt(weekId) {
+        const prompt = GEMINI_PROMPTS[weekId] || GEMINI_PROMPTS.help || "Mənə kömək et.";
+        const encoded = encodeURIComponent(prompt);
+        window.open("https://volaura.app/?q=" + encoded, "_blank");
+    }
+
+    function copyPrompt(weekId) {
+        const prompt = GEMINI_PROMPTS[weekId] || "Mənə bu tapşırıqda kömək et.";
+        navigator.clipboard.writeText(prompt).then(() => setSaveIndicator("Prompt kopyalandı."));
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "it_kesfiyyatcisi_backup.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function importDataFromInput(input) {
+        const file = input.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const parsed = safeParse(String(reader.result || ""));
+            if (!parsed) return alert("Fayl formatı düzgün deyil.");
+            if (!parsed.student || !parsed.progress || !Array.isArray(parsed.progress.completedTasks)) {
+                return alert("Backup strukturu düzgün deyil.");
+            }
+            state = mergeState(getInitialState(), parsed);
+            refreshAllWeekProgress();
+            unlockByRule();
+            persistNow("Backup yükləndi.");
+            navigate("dashboard");
+        };
+        reader.readAsText(file);
+    }
+
+    function showHelp(weekId) {
+        const tips = [
+            "Tapşırığı 3 kiçik hissəyə böl.",
+            "Çətin olan addımı ayrıca yaz.",
+            "Ata ilə 10 dəqiqə müzakirə et.",
+            "Sonra Gemini-yə bu sualı ver: 'Mən 12 yaşındayam, addım-addım izah et.'"
+        ].join("\n");
+        alert("Kömək Planı (Həftə " + weekId + ")\n\n" + tips);
+    }
+
+    function chooseProjectTemplate(id) {
+        state.project.selectedTemplate = id;
+        autosave();
+        setSaveIndicator("Layihə seçimi saxlanıldı.");
+        renderWeek(9);
+    }
+
+    function saveProjectNote(value) {
+        state.project.notes = value;
+        autosave();
+    }
+
+    function applySettings() {
+        const ageSel = document.getElementById("ageInputSettings");
+        const font = document.getElementById("fontSizeSelect").value;
+        const contrast = document.getElementById("contrastInput").checked;
+        const autoSave = document.getElementById("autosaveInput").checked;
+        if (ageSel) {
+            const age = Number(ageSel.value || state.student.age);
+            state.student.age = AGE_OPTIONS.includes(age) ? age : state.student.age;
+        }
+        state.settings.fontSize = font;
+        state.settings.highContrast = contrast;
+        state.settings.autoSave = autoSave;
+        refreshAllWeekProgress();
+        unlockByRule();
+        resetFocusSession();
+        persistNow("Ayarlar saxlanıldı.");
+        render();
+    }
+
+    function resetProgress() {
+        const ok = confirm("Bütün irəliləyiş sıfırlansın?");
+        if (!ok) return;
+        state = getInitialState();
+        persistNow("Məlumat sıfırlandı.");
+        render();
+    }
+
+    function setFatherCheck(weekId, key, checked) {
+        const wk = "week" + weekId;
+        state.fatherCheckins[wk] = state.fatherCheckins[wk] || {};
+        state.fatherCheckins[wk][key] = checked;
+        autosave();
+    }
+
+    function createCertificate() {
+        const done = Object.keys(COURSE).every((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70);
+        if (!done) return alert("Sertifikat üçün bütün həftələrdə ən azı 70% tamamlanmalıdır.");
+        const text = [
+            "Mindshift Academy Sertifikatı",
+            "",
+            "Tələbə: " + state.student.name,
+            "Başlama tarixi: " + state.student.startDate,
+            "Tarix: " + getTodayIsoDate(),
+            "",
+            "Təbrik edirik! 12 həftəlik kurs uğurla tamamlandı."
+        ].join("\n");
+        const blob = new Blob([text], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "mindshift_academy_sertifikat.txt";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    function header() {
+        return `
+            <div class="card">
+                <div class="row space wrap">
+                    <div>
+                        <h1 class="title">${state.student.avatar} Mindshift Academy: IT Kəşfiyyatçısı</h1>
+                        <p class="subtitle">8-12 yaş üçün AI və rəqəmsal bacarıq platforması</p>
+                        <p class="small muted">100% free: offline, açıq resurslar, ödənişsiz istifadə.</p>
+                    </div>
+                    <div class="row wrap">
+                        <button class="btn ghost" onclick="navigate('dashboard')">Ana səhifə</button>
+                        <button class="btn secondary" onclick="navigate('father')">👨 Ata Paneli</button>
+                        <button class="btn ghost" onclick="navigate('settings')">⚙️ Ayarlar</button>
+                    </div>
+                </div>
+                <div class="save-indicator" id="saveIndicator"></div>
+            </div>
+        `;
+    }
+
+    function renderOnboarding() {
+        app.innerHTML = `
+            <div class="card">
+                <h2 class="title">Salam! Gəlin başlayaq 🚀</h2>
+                <p class="subtitle">Sənə uyğun öyrənmə yolu quraq: ad + yaş + avatar.</p>
+                <div class="stack" style="margin-top:12px;">
+                    <input id="nameInput" type="text" placeholder="Adını daxil et..." />
+                    <select id="ageInput">
+                        ${AGE_OPTIONS.map((age) => `<option value="${age}" ${age === 10 ? "selected" : ""}>${age} yaş</option>`).join("")}
+                    </select>
+                    <select id="avatarInput">
+                        ${AVATARS.map((a) => `<option value="${a}">${a}</option>`).join("")}
+                    </select>
+                    <button class="btn" onclick="onboardingSubmit()">Macəraya Başla</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderDashboard() {
+        refreshAllWeekProgress();
+        unlockByRule();
+        const completed = Object.keys(COURSE).filter((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70).length;
+        const total = Object.keys(COURSE).length;
+        const globalPct = Math.round((completed / total) * 100);
+        const current = state.progress.currentWeek;
+        const badges = getBadges();
+        const profile = getUiProfile();
+        const session = getSessionState();
+
+        app.innerHTML = `
+            <div class="fade-in">
+            ${header()}
+            <div class="card stack">
+                <div class="row space">
+                    <strong>Ümumi irəliləyiş</strong>
+                    <span class="badge">${globalPct}% • Həftə ${Math.min(current, 12)} / 12</span>
+                </div>
+                <div class="progress"><div style="width:${globalPct}%"></div></div>
+                <p class="small muted">${state.student.name}, ${state.student.age} yaş • Səviyyə: ${getLearnerLevel()}</p>
+                <div class="notice">${profile.tips}</div>
+            </div>
+
+            <div class="card">
+                <div class="row space">
+                    <h3 style="margin:0;">Növbəti addım</h3>
+                    <button class="btn" onclick="navigate('week', ${Math.min(current, 12)})">Davam Et</button>
+                </div>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">🎯 Günün Missiyası</h3>
+                <p class="subtitle">${getDailyQuest()}</p>
+            </div>
+
+            <div class="card stack">
+                <div class="row space">
+                    <h3 style="margin:0;">⏳ Fokus Sessiyası (${profile.minutes} dəq)</h3>
+                    <span id="sessionTimerText" class="pill">${formatSeconds(session.left)}</span>
+                </div>
+                <div class="row wrap">
+                    <button class="btn" onclick="startFocusSession()" ${session.running ? "disabled" : ""}>Başlat</button>
+                    <button class="btn secondary" onclick="stopFocusSession()" ${session.running ? "" : "disabled"}>Dayandır</button>
+                    <button class="btn ghost" onclick="resetFocusSession()">Sıfırla</button>
+                </div>
+                <p class="small muted">Qısa sessiyalar diqqəti qorumağa kömək edir.</p>
+            </div>
+
+            <div class="card stack">
+                <div class="row space">
+                    <h3 style="margin:0;">🏅 Nailiyyətlər</h3>
+                    <span class="small muted">${badges.length} açılıb</span>
+                </div>
+                <div class="row wrap">
+                    ${badges.length ? badges.map((b) => `<span class="badge">${b}</span>`).join("") : '<span class="small muted">İlk missiyanı bitir və ilk badge-i qazan.</span>'}
+                </div>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">🤖 AI Qaydası</h3>
+                <p class="small muted">AI köməkçidir. Cavabları həmişə yoxla və başa düşmədiyini böyüklə müzakirə et.</p>
+            </div>
+
+            <div class="weeks">
+                ${Object.keys(COURSE).map((wk) => {
+                    const weekId = Number(wk);
+                    const open = canAccessWeek(weekId);
+                    const pct = state.progress.weekProgress[weekId] || 0;
+                    const status = pct >= 100 ? "✅ Tamamlandı" : (open ? "🟡 Davam edir" : "🔒 Kilidli");
+                    return `
+                        <div class="week-card ${open ? "" : "locked"}" onclick="${open ? `navigate('week', ${weekId})` : ""}">
+                            <div class="row space">
+                                <strong>${COURSE[weekId].title}</strong>
+                                <span class="small">${pct}%</span>
+                            </div>
+                            <p class="small muted">${status}</p>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+            </div>
+        `;
+    }
+
+    function renderWeek(weekId) {
+        if (!canAccessWeek(weekId)) return navigate("dashboard");
+        const week = COURSE[weekId];
+        const pct = state.progress.weekProgress[weekId] || 0;
+        const reflection = escapeHtml(state.reflections[weekId] || "");
+        const prevId = Math.max(0, weekId - 1);
+        const nextId = Math.min(12, weekId + 1);
+        const nextOpen = canAccessWeek(nextId);
+
+        const taskChunks = [];
+        for (let i = 0; i < week.tasks.length; i += 2) taskChunks.push(week.tasks.slice(i, i + 2));
+        app.innerHTML = `
+            <div class="fade-in">
+            ${header()}
+            <div class="card stack">
+                <div class="row space wrap">
+                    <div class="row wrap">
+                        <button class="btn ghost" onclick="navigate('week', ${prevId})">← Geri</button>
+                        <button class="btn ghost" ${nextOpen ? `onclick="navigate('week', ${nextId})"` : "disabled"}>İrəli →</button>
+                    </div>
+                    <button class="btn ghost" onclick="navigate('dashboard')">Xəritəyə qayıt</button>
+                </div>
+                <h2 style="margin:0;">${week.title}</h2>
+                <p class="subtitle">🎯 Məqsəd: ${week.goal}</p>
+                <p class="small muted">⏱️ Təxmini vaxt: ${week.hours}</p>
+                <p class="small muted">🎮 Bu həftə 3 missiya + 1 düşüncə tapşırığı var.</p>
+                <div class="row space">
+                    <strong>Progress</strong>
+                    <strong id="weekProgressText">${pct}% tamamlandı</strong>
+                </div>
+                <div class="progress"><div id="weekProgressFill" style="width:${pct}%"></div></div>
+                <div class="row wrap">
+                    <button class="btn" onclick="openGeminiPrompt(${weekId})">🤖 Gemini-də Aç</button>
+                    <button class="btn secondary" onclick="copyPrompt(${weekId})">Kopyala Prompt</button>
+                    <button class="btn ghost" onclick="showHelp(${weekId})">Kömək istəyirəm</button>
+                </div>
+                <p class="small muted">AI dost deyil, alətdir. Cavabı əvvəl düşün, sonra yoxla.</p>
+            </div>
+
+            <div class="stack">
+                ${taskChunks.map((chunk, idx) => `
+                    <div class="card stack" style="margin-bottom:0;">
+                        <div class="row space">
+                            <strong>Missiya bloku ${idx + 1}</strong>
+                            <span class="pill">${chunk.length} tapşırıq</span>
+                        </div>
+                        ${chunk.map((task) => {
+                            const done = state.progress.completedTasks.includes(task.id);
+                            return `
+                                <div class="task mini ${done ? "done" : ""}" onclick="toggleTask('${task.id}', ${weekId})">
+                                    <div class="check">${done ? "✓" : ""}</div>
+                                    <div class="text">🎯 ${task.text}</div>
+                                </div>
+                            `;
+                        }).join("")}
+                    </div>
+                `).join("")}
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">📝 Reflection</h3>
+                <p class="small muted">${week.reflectionPrompt}</p>
+                <textarea oninput="saveReflection(${weekId}, this.value)" placeholder="Bu gün öyrəndiklərindən yaz...">${reflection}</textarea>
+                <div class="row space small muted">
+                    <span>Minimum ${getReflectionMin()} simvol tamamlanma üçün lazımdır.</span>
+                    <span id="reflectionCounter">${reflection.trim().length} / ${getReflectionMin()}+</span>
+                </div>
+            </div>
+
+            ${week.links.length ? `
+                <div class="card stack">
+                    <h3 style="margin:0;">🔗 Faydalı linklər</h3>
+                    ${week.links.map((l) => `<a href="${l.url}" target="_blank" rel="noopener noreferrer">${l.label}</a>`).join("")}
+                </div>
+            ` : ""}
+
+            ${weekId === 7 ? `
+                <div class="card stack">
+                    <h3 style="margin:0;">🤖 AI nədir? (Çox sadə)</h3>
+                    <div class="task mini" style="cursor:default;">
+                        <div class="check">1</div>
+                        <div class="text">AI düşünən insan deyil, ağıllı proqramdır.</div>
+                    </div>
+                    <div class="task mini" style="cursor:default;">
+                        <div class="check">2</div>
+                        <div class="text">Sən yaxşı sual versən, AI daha yaxşı cavab verir.</div>
+                    </div>
+                    <div class="task mini" style="cursor:default;">
+                        <div class="check">3</div>
+                        <div class="text">AI səhv edə bilər, cavabı həmişə yoxlamaq lazımdır.</div>
+                    </div>
+                </div>
+            ` : ""}
+
+            ${weekId >= 9 && weekId <= 10 ? `
+                <div class="card stack">
+                    <h3 style="margin:0;">🏗️ Layihə Seçimi və Plan</h3>
+                    <p class="small muted">Seçilən layihə: <strong>${getSelectedProjectTitle()}</strong></p>
+                    <div class="stack">
+                        ${PROJECT_OPTIONS.map((p) => `
+                            <button class="btn ${state.project.selectedTemplate === p.id ? "success" : "ghost"}" onclick="chooseProjectTemplate('${p.id}')">${p.title} — ${p.desc}</button>
+                        `).join("")}
+                    </div>
+                    <textarea placeholder="Layihə planın: 1) nə edəcəm 2) hansı addımlar 3) nə vaxt bitirəcəm" oninput="saveProjectNote(this.value)">${escapeHtml(state.project.notes || "")}</textarea>
+                </div>
+            ` : ""}
+            </div>
+        `;
+    }
+
+    function renderFatherPanel() {
+        refreshAllWeekProgress();
+        unlockByRule();
+        const current = state.progress.currentWeek;
+        const wkKey = "week" + current;
+        const checks = state.fatherCheckins[wkKey] || {};
+        const completedWeeks = Object.keys(COURSE).filter((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70).length;
+        const reflectionDone = (state.reflections[current] || "").trim().length >= getReflectionMin();
+        const summary = getWeekSummary(current);
+
+        const canCert = Object.keys(COURSE).every((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70);
+        app.innerHTML = `
+            <div class="fade-in">
+            ${header()}
+            <div class="card stack">
+                <h2 style="margin:0;">👨 Ata Dəstək Paneli</h2>
+                <p class="small muted">Statistika və həftəlik yoxlama.</p>
+                <ul class="small muted" style="margin:0; padding-left:18px;">
+                    <li>Tamamlanan həftələr: ${completedWeeks} / ${Object.keys(COURSE).length}</li>
+                    <li>Son giriş: ${new Date(state.student.lastVisit).toLocaleString("az-AZ")}</li>
+                    <li>Bu həftə reflection: ${reflectionDone ? "Bəli" : "Xeyr"}</li>
+                </ul>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">📊 Weekly Summary (Həftə ${current})</h3>
+                <div class="row wrap">
+                    <span class="pill">Tapşırıq: ${summary?.doneTasks || 0}/${summary?.totalTasks || 0}</span>
+                    <span class="pill">Reflection: ${summary?.reflectionLen || 0} simvol</span>
+                    <span class="pill">Yoxlama: ${summary?.checksDone || 0}/4</span>
+                    <span class="pill">Progress: ${summary?.progress || 0}%</span>
+                </div>
+                <div class="notice">${summary?.recommendation || "Məlumat yoxdur."}</div>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">Bu həftəlik yoxlama siyahısı (Həftə ${current})</h3>
+                ${[
+                    { key: "talked", label: "Oğlunuzla 15 dəqiqə danışdınız?" },
+                    { key: "reviewed", label: "Layihəsinə baxdınız?" },
+                    { key: "helped", label: "Texniki kömək lazım oldumu?" },
+                    { key: "readReflection", label: "Reflection yazısını oxudunuz?" }
+                ].map((item) => `
+                    <label class="task ${checks[item.key] ? "done" : ""}" style="cursor:default;">
+                        <input type="checkbox" ${checks[item.key] ? "checked" : ""} onchange="setFatherCheck(${current}, '${item.key}', this.checked); this.parentElement.classList.toggle('done', this.checked);" />
+                        <span>${item.label}</span>
+                    </label>
+                `).join("")}
+                <button class="btn" onclick="persistNow('Yoxlama saxlanıldı.')">Yoxlamanı Saxla</button>
+                <p class="small muted">Tövsiyə: "Nəyi başa düşdün?" sualı motivasiyanı artırır.</p>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">💾 Backup</h3>
+                <div class="row wrap">
+                    <button class="btn success" onclick="exportData()">Nəticələri Yüklə (.json)</button>
+                    <label class="btn warn" style="display:inline-flex; align-items:center; justify-content:center;">
+                        Backup Yüklə
+                        <input type="file" accept="application/json" style="display:none;" onchange="importDataFromInput(this)" />
+                    </label>
+                </div>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">🎓 Sertifikat</h3>
+                <p class="small muted">Bütün həftələrdə ən az 70% tamamlandıqda aktiv olur.</p>
+                <button class="btn" onclick="createCertificate()" ${canCert ? "" : "disabled"}>Mindshift Academy Sertifikatı</button>
+            </div>
+            </div>
+        `;
+    }
+
+    function applyAppearance() {
+        document.body.style.fontSize = state.settings.fontSize === "large" ? "18px" : "16px";
+        const profile = getUiProfile();
+        document.documentElement.style.setProperty("--focus", profile.focus);
+        if (state.settings.highContrast) {
+            document.documentElement.style.setProperty("--bg", "#ffffff");
+            document.documentElement.style.setProperty("--text", "#000000");
+            document.documentElement.style.setProperty("--muted", "#1f2937");
+            document.documentElement.style.setProperty("--border", "#111827");
+        } else {
+            document.documentElement.style.setProperty("--bg", "#f8fafc");
+            document.documentElement.style.setProperty("--text", "#0f172a");
+            document.documentElement.style.setProperty("--muted", "#64748b");
+            document.documentElement.style.setProperty("--border", "#e2e8f0");
+        }
+    }
+
+    function renderSettings() {
+        app.innerHTML = `
+            <div class="fade-in">
+            ${header()}
+            <div class="card stack">
+                <h2 style="margin:0;">⚙️ Ayarlar</h2>
+                <label class="small muted">Yaş profili (8-12)</label>
+                <select id="ageInputSettings">
+                    ${AGE_OPTIONS.map((age) => `<option value="${age}" ${state.student.age === age ? "selected" : ""}>${age} yaş</option>`).join("")}
+                </select>
+                <label class="small muted">Yazı ölçüsü</label>
+                <select id="fontSizeSelect">
+                    <option value="normal" ${state.settings.fontSize === "normal" ? "selected" : ""}>Normal</option>
+                    <option value="large" ${state.settings.fontSize === "large" ? "selected" : ""}>Böyük</option>
+                </select>
+                <label><input id="contrastInput" type="checkbox" ${state.settings.highContrast ? "checked" : ""} /> Yüksək kontrast</label>
+                <label><input id="autosaveInput" type="checkbox" ${state.settings.autoSave ? "checked" : ""} /> Avtomatik saxla</label>
+                <div class="row wrap">
+                    <button class="btn inline" onclick="applySettings()">Saxla</button>
+                    <button class="btn warn inline" onclick="resetProgress()">Proqresi sıfırla</button>
+                </div>
+            </div>
+            </div>
+        `;
+    }
+
+    function render() {
+        state.student.lastVisit = new Date().toISOString();
+        applyAppearance();
+        if (!state.student.name) return renderOnboarding();
+        if (router.view === "week") return renderWeek(router.weekId);
+        if (router.view === "father") return renderFatherPanel();
+        if (router.view === "settings") return renderSettings();
+        return renderDashboard();
+    }
+
+    window.navigate = navigate;
+    window.onboardingSubmit = onboardingSubmit;
+    window.toggleTask = toggleTask;
+    window.saveReflection = saveReflection;
+    window.openGeminiPrompt = openGeminiPrompt;
+    window.copyPrompt = copyPrompt;
+    window.exportData = exportData;
+    window.importDataFromInput = importDataFromInput;
+    window.setFatherCheck = setFatherCheck;
+    window.persistNow = persistNow;
+    window.createCertificate = createCertificate;
+    window.showHelp = showHelp;
+    window.applySettings = applySettings;
+    window.resetProgress = resetProgress;
+    window.chooseProjectTemplate = chooseProjectTemplate;
+    window.saveProjectNote = saveProjectNote;
+    window.startFocusSession = startFocusSession;
+    window.stopFocusSession = stopFocusSession;
+    window.resetFocusSession = resetFocusSession;
+
+    refreshAllWeekProgress();
+    unlockByRule();
+    render();
+</script>
+</body>
+</html>
