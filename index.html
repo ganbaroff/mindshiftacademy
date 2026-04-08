@@ -64,6 +64,7 @@
             border: none;
             border-radius: 10px;
             padding: 10px 14px;
+            min-height: 44px;
             cursor: pointer;
             background: var(--primary);
             color: #fff;
@@ -77,6 +78,16 @@
         .btn.warn { background: #b45309; }
         .btn:disabled { background: var(--locked); cursor: not-allowed; }
         .btn.inline { width: auto; }
+        .btn:focus-visible,
+        .task:focus-visible,
+        .week-card:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible {
+            outline: 3px solid #1d4ed8;
+            outline-offset: 2px;
+        }
 
         .progress {
             width: 100%;
@@ -105,6 +116,7 @@
             background: #fff;
             cursor: pointer;
         }
+        .week-card:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08); }
         .week-card.locked {
             border-left-color: var(--locked);
             opacity: 0.65;
@@ -115,12 +127,15 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px;
+            min-height: 44px;
             background: #fff;
             display: flex;
             gap: 12px;
             align-items: flex-start;
             cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
         }
+        .task:hover { transform: translateY(-1px); border-color: #93c5fd; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06); }
         .task.mini { background: var(--focus); }
         .task.done { background: #ecfdf5; border-color: var(--success); }
         .task .check {
@@ -168,6 +183,54 @@
             font-size: 12px;
             color: var(--muted);
         }
+        #toast {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            max-width: 360px;
+            background: #0f172a;
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: 10px;
+            box-shadow: 0 14px 24px rgba(2, 6, 23, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            z-index: 9999;
+            font-size: 13px;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .celebration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 9998;
+        }
+        .confetti {
+            position: absolute;
+            top: -20px;
+            width: 10px;
+            height: 16px;
+            border-radius: 3px;
+            animation: fall 1100ms linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(105vh) rotate(540deg); opacity: 0.5; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
 
         @media (max-width: 520px) {
             .title { font-size: 22px; }
@@ -178,6 +241,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <script>
     const DB_KEY = "itExplorer_v1";
     const DEFAULT_MIN_REFLECTION = 50;
@@ -232,7 +296,7 @@
             goal: "Kompüterin necə işlədiyini sadə dillə anlamaq.",
             hours: "2-3 saat",
             tasks: [
-                { id: "0_1", text: "Video izlə: How Computer Works (Mindshift Academy)." },
+                { id: "0_1", text: "Video izlə: How Computer Works (VOLAURA APP)." },
                 { id: "0_2", text: "CPU (Mərkəzi Prosessor), RAM (Əməliyyat Yaddaşı), Storage (Daimi Yaddaş) anlayışlarını oxu." },
                 { id: "0_3", text: "Kağızda kompüterin iş prinsipinin sadə sxemini çək." }
             ],
@@ -556,7 +620,7 @@
                 s.running = false;
                 clearInterval(sessionTimer);
                 setSaveIndicator("Əla! Fokus sessiyası bitdi. 3 dəq fasilə et.");
-                alert("Sessiya tamamlandı 🎉\nİndi 3 dəqiqə fasilə et, sonra davam et.");
+                celebrate("Sessiya tamamlandı! 3 dəq fasilə vaxtı ⏸️");
             }
         }, 1000);
         autosave();
@@ -613,6 +677,33 @@
         }
     }
 
+    function notify(message) {
+        const t = document.getElementById("toast");
+        if (!t) return;
+        t.textContent = message;
+        t.classList.add("show");
+        window.clearTimeout(notify._timer);
+        notify._timer = window.setTimeout(() => t.classList.remove("show"), 2100);
+    }
+
+    function celebrate(message) {
+        notify(message);
+        const wrap = document.createElement("div");
+        wrap.className = "celebration";
+        const colors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+        for (let i = 0; i < 36; i++) {
+            const piece = document.createElement("div");
+            piece.className = "confetti";
+            piece.style.left = Math.random() * 100 + "vw";
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDelay = (Math.random() * 220) + "ms";
+            piece.style.transform = "translateY(0) rotate(" + (Math.random() * 180) + "deg)";
+            wrap.appendChild(piece);
+        }
+        document.body.appendChild(wrap);
+        setTimeout(() => wrap.remove(), 1300);
+    }
+
     function weekTasks(weekId) {
         return COURSE[weekId]?.tasks || [];
     }
@@ -666,7 +757,7 @@
         const name = (document.getElementById("nameInput").value || "").trim();
         const avatar = document.getElementById("avatarInput").value;
         const age = Number(document.getElementById("ageInput").value || 10);
-        if (!name || name.length < 2) return alert("Ad ən az 2 simvol olmalıdır.");
+        if (!name || name.length < 2) return notify("Ad ən az 2 simvol olmalıdır.");
         state.student.name = name;
         state.student.avatar = avatar || "🚀";
         state.student.age = AGE_OPTIONS.includes(age) ? age : 10;
@@ -677,18 +768,23 @@
 
     function toggleTask(taskId, weekId) {
         if (!canAccessWeek(weekId)) return;
+        const prevPct = state.progress.weekProgress[weekId] || 0;
         const idx = state.progress.completedTasks.indexOf(taskId);
         if (idx >= 0) state.progress.completedTasks.splice(idx, 1);
         else state.progress.completedTasks.push(taskId);
         refreshAllWeekProgress();
         unlockByRule();
         const isNowDone = state.progress.completedTasks.includes(taskId);
+        const newPct = state.progress.weekProgress[weekId] || 0;
         autosave();
         if (isNowDone) setSaveIndicator("Mükəmməl! Bir missiya tamamlandı ✅");
+        if (prevPct < 70 && newPct >= 70) celebrate("Yeni həftə açıldı! Əla iş 🚀");
+        else if (prevPct < 100 && newPct === 100) celebrate("Həftə 100% tamamlandı! 🎉");
         renderWeek(weekId);
     }
 
     function saveReflection(weekId, value) {
+        const prevPct = state.progress.weekProgress[weekId] || 0;
         state.reflections[weekId] = value;
         refreshAllWeekProgress();
         unlockByRule();
@@ -700,6 +796,7 @@
         if (p) p.style.width = pct + "%";
         if (t) t.textContent = pct + "% tamamlandı";
         if (c) c.textContent = (value || "").trim().length + " / " + getReflectionMin() + "+";
+        if (prevPct < 70 && pct >= 70) celebrate("Super! Növbəti həftə açıldı 🌟");
     }
 
     function openGeminiPrompt(weekId) {
@@ -731,9 +828,9 @@
         const reader = new FileReader();
         reader.onload = () => {
             const parsed = safeParse(String(reader.result || ""));
-            if (!parsed) return alert("Fayl formatı düzgün deyil.");
+            if (!parsed) return notify("Fayl formatı düzgün deyil.");
             if (!parsed.student || !parsed.progress || !Array.isArray(parsed.progress.completedTasks)) {
-                return alert("Backup strukturu düzgün deyil.");
+                return notify("Backup strukturu düzgün deyil.");
             }
             state = mergeState(getInitialState(), parsed);
             refreshAllWeekProgress();
@@ -751,7 +848,7 @@
             "Ata ilə 10 dəqiqə müzakirə et.",
             "Sonra Gemini-yə bu sualı ver: 'Mən 12 yaşındayam, addım-addım izah et.'"
         ].join("\n");
-        alert("Kömək Planı (Həftə " + weekId + ")\n\n" + tips);
+        notify("Kömək Planı: 1) böl 2) yaz 3) müzakirə et 4) AI-dan soruş.");
     }
 
     function chooseProjectTemplate(id) {
@@ -802,9 +899,9 @@
 
     function createCertificate() {
         const done = Object.keys(COURSE).every((wk) => (state.progress.weekProgress[Number(wk)] || 0) >= 70);
-        if (!done) return alert("Sertifikat üçün bütün həftələrdə ən azı 70% tamamlanmalıdır.");
+        if (!done) return notify("Sertifikat üçün bütün həftələrdə ən azı 70% tamamlanmalıdır.");
         const text = [
-            "Mindshift Academy Sertifikatı",
+            "VOLAURA APP Sertifikatı",
             "",
             "Tələbə: " + state.student.name,
             "Başlama tarixi: " + state.student.startDate,
@@ -816,7 +913,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "mindshift_academy_sertifikat.txt";
+        a.download = "volaura_app_sertifikat.txt";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -828,7 +925,7 @@
             <div class="card">
                 <div class="row space wrap">
                     <div>
-                        <h1 class="title">${state.student.avatar} Mindshift Academy: IT Kəşfiyyatçısı</h1>
+                        <h1 class="title">${state.student.avatar} VOLAURA APP: IT Kəşfiyyatçısı</h1>
                         <p class="subtitle">8-12 yaş üçün AI və rəqəmsal bacarıq platforması</p>
                         <p class="small muted">100% free: offline, açıq resurslar, ödənişsiz istifadə.</p>
                     </div>
@@ -933,7 +1030,7 @@
                     const pct = state.progress.weekProgress[weekId] || 0;
                     const status = pct >= 100 ? "✅ Tamamlandı" : (open ? "🟡 Davam edir" : "🔒 Kilidli");
                     return `
-                        <div class="week-card ${open ? "" : "locked"}" onclick="${open ? `navigate('week', ${weekId})` : ""}">
+                        <div class="week-card ${open ? "" : "locked"}" role="button" tabindex="${open ? "0" : "-1"}" onkeydown="${open ? `if(event.key==='Enter'||event.key===' '){event.preventDefault();navigate('week', ${weekId});}` : ""}" onclick="${open ? `navigate('week', ${weekId})` : ""}">
                             <div class="row space">
                                 <strong>${COURSE[weekId].title}</strong>
                                 <span class="small">${pct}%</span>
@@ -996,7 +1093,7 @@
                         ${chunk.map((task) => {
                             const done = state.progress.completedTasks.includes(task.id);
                             return `
-                                <div class="task mini ${done ? "done" : ""}" onclick="toggleTask('${task.id}', ${weekId})">
+                                <div class="task mini ${done ? "done" : ""}" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTask('${task.id}', ${weekId});}" onclick="toggleTask('${task.id}', ${weekId})">
                                     <div class="check">${done ? "✓" : ""}</div>
                                     <div class="text">🎯 ${task.text}</div>
                                 </div>
@@ -1123,7 +1220,13 @@
             <div class="card stack">
                 <h3 style="margin:0;">🎓 Sertifikat</h3>
                 <p class="small muted">Bütün həftələrdə ən az 70% tamamlandıqda aktiv olur.</p>
-                <button class="btn" onclick="createCertificate()" ${canCert ? "" : "disabled"}>Mindshift Academy Sertifikatı</button>
+                <button class="btn" onclick="createCertificate()" ${canCert ? "" : "disabled"}>VOLAURA APP Sertifikatı</button>
+            </div>
+
+            <div class="card stack">
+                <h3 style="margin:0;">👤 Müəllif</h3>
+                <p class="small muted">Müəllif: Yusif (ganbaroff)</p>
+                <a href="https://www.linkedin.com/search/results/all/?keywords=5522099362051179" target="_blank" rel="noopener noreferrer">LinkedIn profili (ID: 5522099362051179)</a>
             </div>
             </div>
         `;
