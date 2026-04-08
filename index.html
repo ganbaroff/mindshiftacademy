@@ -382,7 +382,7 @@
             goal: "AI alətini düzgün istifadə etməyi öyrənmək.",
             hours: "2-3 saat",
             tasks: [
-                { id: "7_1", text: "Gemini-yə salamlaşma sualı ver." },
+                { id: "7_1", text: "VOLAURA AI-yə salamlaşma sualı ver." },
                 { id: "7_2", text: "3 fərqli mövzuda sual soruş." },
                 { id: "7_3", text: "AI cavabında fakt yoxlaması et." }
             ],
@@ -846,7 +846,7 @@
             "Tapşırığı 3 kiçik hissəyə böl.",
             "Çətin olan addımı ayrıca yaz.",
             "Ata ilə 10 dəqiqə müzakirə et.",
-            "Sonra Gemini-yə bu sualı ver: 'Mən 12 yaşındayam, addım-addım izah et.'"
+            "Sonra VOLAURA AI-yə bu sualı ver: 'Mən 12 yaşındayam, addım-addım izah et.'"
         ].join("\n");
         notify("Kömək Planı: 1) böl 2) yaz 3) müzakirə et 4) AI-dan soruş.");
     }
@@ -855,7 +855,8 @@
         state.project.selectedTemplate = id;
         autosave();
         setSaveIndicator("Layihə seçimi saxlanıldı.");
-        renderWeek(9);
+        const targetWeek = (router.weekId === 10) ? 10 : 9;
+        renderWeek(targetWeek);
     }
 
     function saveProjectNote(value) {
@@ -1076,7 +1077,7 @@
                 </div>
                 <div class="progress"><div id="weekProgressFill" style="width:${pct}%"></div></div>
                 <div class="row wrap">
-                    <button class="btn" onclick="openGeminiPrompt(${weekId})">🤖 Gemini-də Aç</button>
+                    <button class="btn" onclick="openGeminiPrompt(${weekId})">🤖 VOLAURA AI-də Aç</button>
                     <button class="btn secondary" onclick="copyPrompt(${weekId})">Kopyala Prompt</button>
                     <button class="btn ghost" onclick="showHelp(${weekId})">Kömək istəyirəm</button>
                 </div>
@@ -1226,7 +1227,10 @@
             <div class="card stack">
                 <h3 style="margin:0;">👤 Müəllif</h3>
                 <p class="small muted">Müəllif: Yusif (ganbaroff)</p>
-                <a href="https://www.linkedin.com/search/results/all/?keywords=5522099362051179" target="_blank" rel="noopener noreferrer">LinkedIn profili (ID: 5522099362051179)</a>
+                <a href="https://www.linkedin.com/in/yusif-ganbarov-pmp-9b3b66194/" target="_blank" rel="noopener noreferrer">LinkedIn: yusif-ganbarov-pmp-9b3b66194</a>
+                <p class="small muted">Bu kimi layihələrin davam etməsi üçün müəllifi dəstəkləyə bilərsiniz. Məbləğ vacib deyil.</p>
+                <p class="small muted">Dəstək birbaşa müəllifin AI modelləri və təhsil layihələrinin inkişafına yönəlir.</p>
+                <p class="small muted">Təklif və əməkdaşlıq üçün LinkedIn üzərindən yaza bilərsiniz.</p>
             </div>
             </div>
         `;
